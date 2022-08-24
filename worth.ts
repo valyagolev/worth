@@ -83,7 +83,6 @@ function compile(commands: Command[]): (stack: Stack) => void {
 
           (args as any[]).forEach((a, i) => {
             s = s.replace(new RegExp("_" + i, "g"), `(${a})`);
-            console.log(s);
           });
           return s;
         }
@@ -113,7 +112,7 @@ function compile(commands: Command[]): (stack: Stack) => void {
   }
 }`;
 
-  console.log(code);
+  // console.log(code);
   return eval(code)();
 
   // return () => {};
@@ -340,6 +339,13 @@ function execute(commands: Command[]): Stack {
   let dataStack: Stack = [];
   let retStack: Command[][] = [];
 
+  let undefinedMarkerHandlerStack: Command[][] = [];
+
+  const handleUndefinedMarker = (marker: string) => {
+    // console.log("undef", undefinedMarkerHandlerStack);
+    call(undefinedMarkerHandlerStack[undefinedMarkerHandlerStack.length - 1]);
+  };
+
   let names: { [name: string]: Command[] } = {};
   let markersdefs: { [name: string]: Command[] } = {};
 
@@ -361,7 +367,7 @@ function execute(commands: Command[]): Stack {
         const f = compile(["~" + val]);
         nativeNames["~" + val] = () => f(dataStack);
         nativeNames["~" + val]();
-        console.log("!!!");
+        // console.log("!!!");
       } else {
         const inds = [...Array(val.length).keys()]
           .map((i) => val.charCodeAt(i) - a)
@@ -381,9 +387,20 @@ function execute(commands: Command[]): Stack {
         return;
       }
 
-      if (!markersdefs[val]) throw "marker not defined " + val;
-      call(markersdefs[val]);
+      runMarker(val);
     },
+  };
+
+  const runMarker = (val: string): void => {
+    dataStack.push({ marker: val }); // pass marker to the handlers
+
+    // console.log(markersdefs);
+    if (!markersdefs[val]) {
+      if (undefinedMarkerHandlerStack.length > 0) handleUndefinedMarker(val);
+      else throw "marker not defined " + val;
+    } else {
+      call(markersdefs[val]);
+    }
   };
 
   let call = (newCode: Command[], returnTo?: Command[]) => {
@@ -425,7 +442,7 @@ function execute(commands: Command[]): Stack {
 
       if (!marker.marker) throw "[escapable] bad marker " + marker;
 
-      markersdefs[marker.marker] = [{ pushValue: marker }, "escape"].reverse();
+      markersdefs[marker.marker] = ["escape"].reverse();
       call(block, [{ pushValue: marker }, "clearMarker"].reverse());
     },
     escape: () => {
@@ -444,6 +461,38 @@ function execute(commands: Command[]): Stack {
         code = retStack.pop();
       }
     },
+    "call-with-marker-handler": () => {
+      const marker = dataStack.pop();
+      const handler = dataStack.pop();
+      const block = dataStack.pop();
+
+      if (!marker.marker) throw "[cwmh] bad marker " + marker;
+
+      markersdefs[marker.marker] = handler;
+      call(block, [{ pushValue: marker }, "clearMarker"].reverse());
+    },
+    "call-with-undefined-marker-handler": () => {
+      const handler = dataStack.pop();
+      const block = dataStack.pop();
+
+      undefinedMarkerHandlerStack.push(handler);
+
+      call(block, ["pop-undefined-marker-handler"]);
+    },
+    "pop-undefined-marker-handler": () => {
+      undefinedMarkerHandlerStack.pop();
+    },
+    "push-before-block": () => {
+      const v = dataStack.pop();
+      const bl = dataStack.pop();
+      dataStack.push([...bl, { pushValue: v }]);
+    },
+    "add-command-before-block": () => {
+      const v = dataStack.pop();
+      const bl = dataStack.pop();
+      dataStack.push([...bl, v]);
+    },
+
     clearMarker: () => {
       const marker = dataStack.pop();
 
@@ -486,6 +535,7 @@ function execute(commands: Command[]): Stack {
     },
     drop: () => dataStack.pop(),
     "dump-stack": () => console.log(dataStack),
+    "dump-ret-stack": () => console.log("ret", retStack),
     print: () => console.log(dataStack.pop()),
     "now!": () => dataStack.push(Date.now()),
     compile: () => {
@@ -516,6 +566,7 @@ function execute(commands: Command[]): Stack {
         if ("pushValue" in cmd) {
           dataStack.push(cmd.pushValue);
         } else if ("marker" in cmd) {
+          runMarker(cmd.marker);
         } else {
           throw "Can't interpret " + JSON.stringify(cmd) + "";
         }
@@ -530,13 +581,13 @@ function execute(commands: Command[]): Stack {
 async function main() {
   console.log("--- START ---");
 
-  const f = await fs.open("test/euler/5.wf");
+  const f = await fs.open("test/structs.wf");
   const value = await f.readFile("utf-8");
   f.close();
 
   const commands = parse(stdLib + value);
 
-  console.log(execute(commands));
+  console.log("final stack:", execute(commands));
 }
 
 await main();

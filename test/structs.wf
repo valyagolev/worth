@@ -1,0 +1,31 @@
+: struct-read ( bl m - )
+    [ swap escapable ]
+    call-ignoring-undefined-handlers
+    ;
+
+: call-ignoring-undefined-handlers ( bl - )
+    [ drop drop ] call-with-undefined-marker-handler ;
+
+: struct-write ( bl m v )
+    [ ] ~bcda
+    [
+        [
+            ~bda add-command-before-block
+            swap push-before-block
+        ] swap push-before-block  ( bl m h )
+        swap call-with-marker-handler
+    ]
+    [
+        ~acb add-command-before-block
+        swap push-before-block
+    ]
+    call-with-undefined-marker-handler
+    ;
+
+[ #1 :a #32132 :ccc #212321 :b ]
+
+dup #:ccc struct-read print
+
+#:ccc #666 struct-write
+
+dup #:ccc struct-read print

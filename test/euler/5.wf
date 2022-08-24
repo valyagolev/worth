@@ -20,6 +20,7 @@
 
 #'divisibleByAll10 compile
 
+[
 #0 [
   #2520 +
   ( dup print )
@@ -30,3 +31,4 @@
     
 ] while
 
+] time
