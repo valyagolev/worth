@@ -1,0 +1,41 @@
+
+: ispalin ( n - )
+  dup #0 swap       (  n (m:=#0)  n )
+  [
+    dup #10 mod     (  n m        n (n%10) )
+    swap [ + ] dip  (  n (m+n%10) n )
+    #10 [ / ] sip swap [ * ] dip
+                    (  n ((m+n%10) * 10) (n/10)  )
+    dup #0 eq? not
+  ] while
+  drop #10 / eq? ;
+
+#123 ispalin print
+#12321 ispalin print
+#123321 ispalin print
+
+
+[
+
+#0 #100 #900 [ #1 +
+  dup print
+  dup
+  dup #1000 swap -
+  [
+
+    ~abab * dup ispalin
+    [
+      ~adadbc
+      <
+      [ swap ] if
+
+      ~acdb
+    ] if
+    drop
+
+    #1 +
+  ] times
+  drop
+] times drop
+
+] time 
