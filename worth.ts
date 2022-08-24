@@ -26,12 +26,17 @@ function collectBrackets(stack: Stack, open: string, close: string): Value[] {
 
 const stdLib = `
 
-: divides? ( n n - b )   mod #0 eq? ;
 : if       ( b bl - )    [ ] choose ;
+
 : while    ( bl - )      dup [ call ] dip swap [ while ] [ drop ] choose ;
 : forever  ( bl - )      dup [ call ] dip forever ;
 : loop     ( mk bl - )   swap [ forever ] escapable ;
 : time     ( bl - )      now! [ call ] dip now! swap - #:profile_result: print print ;
+
+: divides? ( n n - b )   mod #0 eq? ;
+#'divides? compile
+
+
 
 `;
 
@@ -53,13 +58,37 @@ function compile(commands: Command[]): (stack: Stack) => void {
 
   const compileValue = (v: any) => {
     // console.log("compiling", v);
-    if (v.call) {
+    if (v.call || v.template) {
       const args = v.args.map(compileValue);
+
+      if (
+        args.filter(
+          (a: any) => !(typeof a === "number") && !(typeof a === "boolean")
+        ).length == 0
+      ) {
+        return v.call(...args);
+      } else {
+        if (v.call) {
+          let i;
+          if (fnsI[v._s] === undefined) {
+            i = fncnt++;
+            fnsI[v._s] = i;
+            fns[i] = v._s;
+          } else {
+            i = fnsI[v._s];
+          }
+          return `f${i}(${args.join(", ")})`;
+        } else {
+          let s = v.template as string;
+
+          (args as any[]).forEach((a, i) => {
+            s = s.replace(new RegExp("_" + i, "g"), `(${a})`);
+            console.log(s);
+          });
+          return s;
+        }
+      }
       // console.log(args, v.args);
-      const i = fncnt++;
-      fnsI[v._s] = i;
-      fns[i] = v._s;
-      return `f${i}(${args.join(", ")})`;
     } else if (v.arg !== undefined) {
       return "a" + v.arg;
     } else {
@@ -134,7 +163,11 @@ function symbolically(commands: Command[]) {
         .reverse();
       const max = Math.max(...inds) + 1;
 
-      if (dataStack.length < max) throw "??";
+      const na = [];
+      while (dataStack.length + na.length < max) {
+        na.push({ arg: args++ });
+      }
+      na.reverse().forEach((a) => dataStack.push(a));
 
       const slc = dataStack.splice(-max).reverse();
       inds.forEach((i) => dataStack.push(slc[i]));
@@ -167,6 +200,12 @@ function symbolically(commands: Command[]) {
 
     dataStack.push({ call: f, _s: f.toString(), args: [a, b] });
   };
+  let strOp = (template: string) => () => {
+    let b = pop();
+    let a = pop();
+
+    dataStack.push({ template, args: [a, b] });
+  };
 
   let nativeNames: { [name: string]: () => void } = {
     "(": () => {
@@ -177,17 +216,18 @@ function symbolically(commands: Command[]) {
     },
 
     call: () => call(pop()),
-    // times: () => {
-    //   const block = pop();
-    //   let times = pop();
+    times: () => {
+      const block = pop();
+      let times = pop();
 
-    //   if (times != 0) {
-    //     call(
-    //       block,
-    //       [{ pushValue: times - 1 }, { pushValue: block }, "times"].reverse()
-    //     );
-    //   }
-    // },
+      if (times != 0) {
+        call(
+          block,
+          [{ pushValue: times - 1 }, { pushValue: block }, "times"].reverse()
+        );
+      }
+    },
+    "divides?": strOp("_0 % _1 === 0"),
     // escapable: () => {
     //   const block = pop();
     //   const marker = pop();
@@ -226,6 +266,7 @@ function symbolically(commands: Command[]) {
     "*": binOp((a, b) => a * b),
     "/": binOp((a, b) => Math.floor(a / b)),
     "||": binOp((a, b) => a || b),
+    "&&": strOp("_0 && _1"),
     mod: binOp((a, b) => a % b),
     "eq?": binOp((a, b) => a === b),
     ">": binOp((a, b) => a > b),
@@ -316,12 +357,19 @@ function execute(commands: Command[]): Stack {
       ),
     "~": (val) => {
       const a = "a".charCodeAt(0);
-      const inds = [...Array(val.length).keys()]
-        .map((i) => val.charCodeAt(i) - a)
-        .reverse();
-      const max = Math.max(...inds) + 1;
-      const slc = dataStack.splice(-max).reverse();
-      inds.forEach((i) => dataStack.push(slc[i]));
+      if (true) {
+        const f = compile(["~" + val]);
+        nativeNames["~" + val] = () => f(dataStack);
+        nativeNames["~" + val]();
+        console.log("!!!");
+      } else {
+        const inds = [...Array(val.length).keys()]
+          .map((i) => val.charCodeAt(i) - a)
+          .reverse();
+        const max = Math.max(...inds) + 1;
+        const slc = dataStack.splice(-max).reverse();
+        inds.forEach((i) => dataStack.push(slc[i]));
+      }
     },
     ":": (val) => {
       if (!val) {
@@ -409,6 +457,7 @@ function execute(commands: Command[]): Stack {
     "*": binOp((a, b) => a * b),
     "/": binOp((a, b) => Math.floor(a / b)),
     "||": binOp((a, b) => a || b),
+    "&&": binOp((a, b) => a && b),
     mod: binOp((a, b) => a % b),
     "eq?": binOp((a, b) => a === b),
     ">": binOp((a, b) => a > b),
@@ -481,7 +530,7 @@ function execute(commands: Command[]): Stack {
 async function main() {
   console.log("--- START ---");
 
-  const f = await fs.open("test/euler/4.wf");
+  const f = await fs.open("test/euler/5.wf");
   const value = await f.readFile("utf-8");
   f.close();
 

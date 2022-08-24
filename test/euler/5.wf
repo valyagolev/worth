@@ -1,0 +1,32 @@
+: divisibleByAll10 ( n - )
+    #true swap #0 #20 [
+        #1 +
+        
+        ( b n m )
+
+        ~abab
+
+        divides?
+
+        ( b n m b )
+
+        ~adbc
+
+        &&
+
+        ~bca
+    ] times drop drop
+    ;
+
+#'divisibleByAll10 compile
+
+#0 [
+  #2520 +
+  ( dup print )
+
+  dup divisibleByAll10
+
+  not
+    
+] while
+
