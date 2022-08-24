@@ -1,0 +1,16 @@
+#0 #0
+#0
+#100 [
+    #1 +
+    ( sum_sq sum i )
+
+    dup [ + ] dip
+
+    swap [ dup [ dup * + ] dip ] dip swap
+
+    dump-stack
+
+] times drop
+
+dup *
+swap -

@@ -581,7 +581,7 @@ function execute(commands: Command[]): Stack {
 async function main() {
   console.log("--- START ---");
 
-  const f = await fs.open("test/structs.wf");
+  const f = await fs.open("test/euler/6.wf");
   const value = await f.readFile("utf-8");
   f.close();
 
