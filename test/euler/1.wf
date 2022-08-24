@@ -1,0 +1,15 @@
+( 233168 )
+
+
+
+#0 #0 #999 [
+    #1 +
+
+    dup #3 divides?
+    [ dup #5 divides? ] dip
+    
+    ||
+
+    [ dup [ + ] dip ] if
+  
+  ] times drop print

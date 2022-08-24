@@ -1,0 +1,22 @@
+( [FI 4613732] )
+
+
+
+#0 #1 #1 [
+  dup [ swap ] dip +
+
+dup #4000000 >
+  [ #false ]
+  [ dup #2 divides?
+    [ 
+      ~caabc
+      +
+      ~dbca
+      drop ] if
+
+    #true ]
+  choose
+
+] while 
+
+drop drop print

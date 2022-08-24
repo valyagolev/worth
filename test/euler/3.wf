@@ -1,0 +1,17 @@
+( [FI 6857] )
+
+#0 #600851475143 #1 #:exit [
+  #1 +
+  ~abab divides?
+  
+  [
+    dump-stack
+    ~caba drop
+    dup [ / ] dip
+    dump-stack
+    ] if
+
+  ~abab <
+  [ :exit ] if
+] loop drop drop 
+

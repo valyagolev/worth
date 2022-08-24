@@ -1,0 +1,11 @@
+{
+  "compilerOptions": {
+    "module": "es2022",
+    "target": "es2022",
+    "noImplicitAny": true,
+    "preserveConstEnums": true,
+    "sourceMap": true,
+    "esModuleInterop": true,
+    "outDir": "dist"
+  }
+}
