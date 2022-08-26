@@ -267,7 +267,9 @@ function symbolically(commands: Command[]) {
     "||": binOp((a, b) => a || b),
     "&&": strOp("_0 && _1"),
     mod: binOp((a, b) => a % b),
-    "eq?": binOp((a, b) => a === b),
+    "eq?": binOp(
+      (a, b) => a === b || (a.marker && a.marker === b.marker) || false
+    ),
     ">": binOp((a, b) => a > b),
     "<": binOp((a, b) => a < b),
     dip: () => {
@@ -508,7 +510,9 @@ function execute(commands: Command[]): Stack {
     "||": binOp((a, b) => a || b),
     "&&": binOp((a, b) => a && b),
     mod: binOp((a, b) => a % b),
-    "eq?": binOp((a, b) => a === b),
+    "eq?": binOp(
+      (a, b) => a === b || (a.marker && a.marker === b.marker) || false
+    ),
     ">": binOp((a, b) => a > b),
     "<": binOp((a, b) => a < b),
     dip: () => {
@@ -581,7 +585,7 @@ function execute(commands: Command[]): Stack {
 async function main() {
   console.log("--- START ---");
 
-  const f = await fs.open("test/euler/6.wf");
+  const f = await fs.open("test/euler/7.wf");
   const value = await f.readFile("utf-8");
   f.close();
 

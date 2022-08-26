@@ -1,0 +1,35 @@
+: fill_stack ( n - n...2 )
+    #:end swap dup #2 - [ dup #1 - ] times ;
+
+: try_current ( n...p - [ ps ] )
+    dup print
+
+    [ ]
+    #:exit [
+        ( n cur [] )
+        ~cabc #:end eq? [ :exit ] if
+
+        ( n cur [] )
+        [ ~abab divides? not ] dip swap
+
+        ( n cur [] )
+        [ ~cab push-before-block ]
+        [ ~cab drop ]
+        choose
+
+    ] loop
+    swap drop call
+
+    ;
+
+
+
+  
+#1000000 fill_stack 
+#0 #10001 [
+    #1 +
+    dup print
+     [
+        [ try_current ] dip
+    ] time
+] times
